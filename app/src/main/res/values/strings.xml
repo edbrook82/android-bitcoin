@@ -1,3 +1,6 @@
 <resources>
-    <string name="app_name">Bitcoin Value</string>
+    <string name="app_name">BPI</string>
+    <string name="update_failed">Failed to update</string>
+    <string name="coindesk_copyright_text">Powered by CoinDesk</string>
+    <string name="btn_update">Update</string>
 </resources>
