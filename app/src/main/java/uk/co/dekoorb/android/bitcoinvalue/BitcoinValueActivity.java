@@ -1,16 +1,15 @@
 package uk.co.dekoorb.android.bitcoinvalue;
 
+import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.support.annotation.StringDef;
-import android.support.v4.app.ShareCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,6 +19,7 @@ import org.json.JSONObject;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.NumberFormat;
 import java.util.Locale;
 
 public class BitcoinValueActivity extends AppCompatActivity
@@ -65,24 +65,37 @@ public class BitcoinValueActivity extends AppCompatActivity
     }
 
     private void updateBPI() {
+        if (!isOkToRequest()) {
+            Toast.makeText(this, R.string.no_internet, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (mGetBpiTask == null || mGetBpiTask.getStatus().compareTo(AsyncTask.Status.FINISHED) == 0) {
             mGetBpiTask = new FetchJsonFromUrlTask(this);
             try {
-                mGetBpiTask.execute(new URL(BPI_API));
                 mBitcoinPrice.setVisibility(View.GONE);
                 mPbLoading.setVisibility(View.VISIBLE);
+                mGetBpiTask.execute(new URL(BPI_API));
             } catch (MalformedURLException e) {
                 //
             }
         }
     }
 
+    private boolean isOkToRequest() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        if (netInfo != null && netInfo.isConnectedOrConnecting()) {
+            return true;
+        }
+        return false;
+    }
+
     private String getRateFromJson(JSONObject jsonObject, String currency) throws JSONException {
         JSONObject jsonBpis = jsonObject.getJSONObject(JSON_BPI_KEY);
         JSONObject jsonGbp = jsonBpis.getJSONObject(currency);
         float rate_float = Float.parseFloat(jsonGbp.getString(JSON_RATE_KEY));
-        rate_float = Math.round(rate_float * 100) / 100.0f;
-        return String.format(Locale.UK, "£%.2f", rate_float);
+        return NumberFormat.getCurrencyInstance(Locale.UK).format(rate_float);
     }
 
     @Override
@@ -101,14 +114,25 @@ public class BitcoinValueActivity extends AppCompatActivity
 
     @Override
     public void onJsonData(JSONObject jsonObject) {
+        if (jsonObject == null) {
+            notifyUpdateFailed();
+            return;
+        }
         try {
             String rate = getRateFromJson(jsonObject, JSON_GBP_KEY);
             mBitcoinPrice.setText(rate);
             mPbLoading.setVisibility(View.GONE);
             mBitcoinPrice.setVisibility(View.VISIBLE);
         } catch (JSONException e) {
-            String message = getString(R.string.update_failed);
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            notifyUpdateFailed();
         }
+    }
+
+    private void notifyUpdateFailed() {
+        mBitcoinPrice.setText(R.string.bpi_default_value);
+        mBitcoinPrice.setVisibility(View.VISIBLE);
+        mPbLoading.setVisibility(View.GONE);
+        String message = getString(R.string.update_failed);
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

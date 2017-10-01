@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">BPI</string>
     <string name="update_failed">Failed to update</string>
+    <string name="bpi_default_value">£ ???</string>
     <string name="coindesk_copyright_text">Powered by CoinDesk</string>
     <string name="btn_update">Update</string>
+    <string name="no_internet">No Internet Connection?</string>
 </resources>
